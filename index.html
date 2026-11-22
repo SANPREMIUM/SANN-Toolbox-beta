@@ -8067,11 +8067,11 @@ const CAT_COLORS = {
   produktif: 'linear-gradient(135deg, color-mix(in srgb, #a3e635 50%, var(--surface-fixed)), color-mix(in srgb, #65a30d 40%, var(--surface2-fixed)))',
 };
 function getGreeting(){
-  const h = new Date().getHours();
-  if(h<4) return 'Selamat malam';
-  if(h<11) return 'Selamat pagi';
-  if(h<15) return 'Selamat siang';
-  if(h<19) return 'Selamat sore';
+  /* 03.00-10.59 pagi | 11.00-14.59 siang | 15.00-18.00 sore | 18.01-02.59 malam (jam lokal perangkat) */
+  const d = new Date(), m = d.getHours()*60 + d.getMinutes();
+  if(m>=180 && m<660) return 'Selamat pagi';
+  if(m>=660 && m<900) return 'Selamat siang';
+  if(m>=900 && m<=1080) return 'Selamat sore';
   return 'Selamat malam';
 }
 /* ============================================================
@@ -8609,6 +8609,7 @@ function renderHomeBioskop(){
 }
 /* ---- Gaya Beranda: Jam Dinding & Peluncur ---- */
 function _hjLong(){ try{ return new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
+function _hjDate(){ try{ return new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
 function _hjClockSvg(){
   const d=new Date(); let t='';
   for(let i=0;i<60;i++){ const a=i*6*Math.PI/180, r1=i%5?88:81, r2=92;
@@ -8617,8 +8618,8 @@ function _hjClockSvg(){
   try{ hari=d.toLocaleDateString('id-ID',{weekday:'long'}).toUpperCase(); bln=d.toLocaleDateString('id-ID',{month:'short'}); }catch(e){}
   return `<svg class="hjm-cl" viewBox="0 0 200 200" aria-label="Jam dinding"><defs><linearGradient id="hjmG"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs>
   <circle class="fc" cx="100" cy="100" r="97"/><circle class="rg" cx="100" cy="100" r="97"/>${t}
-  <text class="n" x="100" y="43">12</text><text class="n" x="159" y="106">3</text><text class="n" x="100" y="169">6</text><text class="n" x="41" y="106">9</text>
-  <text class="hr" x="100" y="134">${hari}</text><rect class="wn" x="72" y="66" width="56" height="22" rx="8"/><text class="dt" x="100" y="82">${d.getDate()} ${bln}</text>
+  <text class="n" x="100" y="39">12</text><text class="n" x="169" y="106">3</text><text class="n" x="100" y="173">6</text><text class="n" x="31" y="106">9</text>
+  <text class="hr" x="100" y="141">${hari}</text>
   <g class="hjm-hh"><line x1="100" y1="100" x2="100" y2="56"/></g><g class="hjm-mh"><line x1="100" y1="100" x2="100" y2="32"/></g><g class="hjm-sh"><line x1="100" y1="114" x2="100" y2="24"/></g><circle class="ct" cx="100" cy="100" r="5"/></svg>`;
 }
 function _hjShortcuts(D){
@@ -8629,7 +8630,7 @@ function renderHomeJam(){
   const sb=_hjShortcuts(D).map(o=>`<div class="hjm-sb" style="--c:${col[o.n]}" onclick="${D.act(o.n)}"><em>${D.pinIc(o.x)}</em>${o.x[2]}<small>${sub[o.n]}</small></div>`).join('');
   const ls=CATS.map(c=>`<div style="${catNeon(c)}" onclick="nav('cat-${c.id}')"><i>${icoImg(c.id,'')}</i><span>${escapeHtml(c.nm)}</span><u>${c.tools.length}</u></div>`).join('');
   return `<div class="hjm"><div class="hjm-l">${_hjClockSvg()}
-    <div class="hjm-gt"><small>${getGreeting()} · ${new Date().getFullYear()} · ${_tzLabel()}</small><h2>${D.nm||getGreeting()}</h2></div>
+    <div class="hjm-gt"><small><b data-hn-time>${D.clk()}</b> ${_tzLabel()}, ${_hjDate()}.</small><h2>${getGreeting()}${D.nm?', '+escapeHtml(D.nm):''}</h2></div>
     <div class="hjm-lv" onclick="nav('profil')"><span>Lv ${D.lvN}</span><span class="b"><i style="width:${Math.max(3,D.pct)}%"></i></span><span><i class=svi-flame></i> ${D.streak}</span></div>
     ${pfWeekHtml(D.p)}</div>
     <div class="hjm-r"><div class="hjm-r3">${sb}</div><div class="hjm-ls">${ls}</div></div></div>`;
@@ -8638,8 +8639,8 @@ function renderHomePeluncur(){
   const D=_hyData(), col={skor:'#f2a541',profil:'#22d3ee',game:'#a855f7'}, sub={skor:'Papan skor',profil:'Akun & avatar',game:`${D.games.length} game`};
   const sb=_hjShortcuts(D).map(o=>`<div class="hjm-sb" style="--c:${col[o.n]}" onclick="${D.act(o.n)}"><em>${D.pinIc(o.x)}</em>${o.x[2]}<small>${sub[o.n]}</small></div>`).join('');
   const ap=CATS.map(c=>`<div class="hpl-ap" style="${catNeon(c)}" onclick="nav('cat-${c.id}')"><i>${icoImg(c.id,'')}</i><span>${escapeHtml(c.nm)}</span></div>`).join('');
-  return `<div class="hpl"><div class="hpl-l"><div class="hpl-ck"><div class="hpl-top"><div class="hpl-tm" data-hn-time>${D.clk()}</div><div class="avatar-frame hpl-av" onclick="nav('profil')"><img id="homeAvatarImg" class="avatar-current-lg" src="${avatarSrc('avatar-1')}" alt="Avatar" onerror="this.style.display='none'"><img id="homeBorderImg" class="border-overlay-lg" src="" alt="" onerror="this.classList.remove('show')"></div></div><p>${escapeHtml(_hjLong())} · ${_tzLabel()}</p><h3>${getGreeting()}${D.nm?', '+D.nm:''}</h3></div>
-    <div class="hpl-wd" onclick="nav('profil')"><div><small>LEVEL</small><b>Lv ${D.lvN}</b></div><div class="b"><i style="width:${Math.max(3,D.pct)}%"></i></div><small><i class=svi-flame></i> ${D.streak} hari</small></div>
+  return `<div class="hpl"><div class="hpl-l"><div class="hpl-ck"><div class="hpl-top"><div class="hpl-tw"><div class="hpl-tm" data-hn-time>${D.clk()}</div><span class="hpl-tz">${_tzLabel()}</span></div><div class="avatar-frame hpl-av" onclick="nav('profil')"><img id="homeAvatarImg" class="avatar-current-lg" src="${avatarSrc('avatar-1')}" alt="Avatar" onerror="this.style.display='none'"><img id="homeBorderImg" class="border-overlay-lg" src="" alt="" onerror="this.classList.remove('show')"></div></div><p>${escapeHtml(_hjLong())}</p><h3>${getGreeting()}${D.nm?', '+D.nm:''}</h3></div>
+    <div class="hpl-wd" onclick="nav('profil')"><div><b>Lv ${D.lvN}</b></div><div class="b"><i style="width:${Math.max(3,D.pct)}%"></i></div><small><i class=svi-flame></i> ${D.streak} hari</small></div>
     <div class="hjm-r3">${sb}</div></div>
     <div class="hpl-r"><div class="hpl-ag">${ap}</div></div></div>`;
 }
@@ -8656,12 +8657,12 @@ function renderHomeObsidian(){
   return `<div class="hob">
     <div class="hob-l">
       <div class="hob-sp">
-        <div class="hob-rb" onclick="nav('leaderboard')"><i>${trophy}</i><span>Skor</span></div>
+        <div class="hob-rb" onclick="nav('leaderboard')"><i>${icoImg('skor',trophy)}</i><span>Skor</span></div>
         <div class="hob-rb" onclick="nav('profil')"><div class="hob-ring" style="--p:${D.pct}"><img id="homeAvatarImg" src="${avatarSrc('avatar-1')}" alt="" onerror="this.style.display='none'"></div><span>Profil</span></div>
-        <div class="hob-rb" onclick="nav('cat-game')"><i>${pad}</i><span>Game</span></div>
+        <div class="hob-rb" onclick="nav('cat-game')"><i>${icoImg('game',pad)}</i><span>Game</span></div>
       </div>
-      <h2 class="hob-hi"><span>${getGreeting()}${D.nm?',':''}</span>${D.nm?'<br>'+D.nm:''}</h2>
-      <div class="hob-dt">${tgl}</div>
+      <h2 class="hob-hi"><span>${getGreeting()}${D.nm?',':''}</span>${D.nm?' '+escapeHtml(D.nm):''}</h2>
+      <div class="hob-dt">${tgl}. <b data-hn-time>${D.clk()}</b> ${_tzLabel()}</div>
       <div class="hob-lv"><div><span>Lv ${D.lv.level} · ${D.lv.cur}/${D.lv.need} XP</span><b><i class=svi-flame></i> ${D.p.streak||0} hari</b></div><div class="xpbar"><i style="width:${Math.max(3,D.pct)}%"></i></div></div>
     </div>
     <div class="hob-r">
@@ -27754,6 +27755,12 @@ setTimeout(apply,0);
   html body[data-page="home"] .hm-st-in{font-size:26px;}
   html body[data-page="home"] .hm-st span{font-size:11px;}
 }
+/* Klasik landscape: sisa tinggi kolom kiri dibagi ke kartu profil dan kanvas Pintasan (tidak ada sisi kosong di bawah) */
+@media (orientation:landscape) and (max-height:620px){
+  html body[data-page="home"] .hm-top{flex:1 1 auto;align-content:center;}
+  html body[data-page="home"] .hm-canvas{flex:1 1 auto;}
+  html body[data-page="home"] .hm-canvas .hm-stories{flex:1 1 auto;}
+}
 /* ----- Bottom bar gaya pilihan (#bnx) di landscape -----
    Sebelumnya kontainernya dibatasi 560px dan di-center, jadi tombol kanan bawah malah
    nongol di tengah layar menutupi konten. Sekarang selebar layar. */
@@ -27949,6 +27956,93 @@ html body .chs-root:not(.fs) .chs-btns .btn{flex:1 1 0;}
   html body .chs-root:not(.fs) .chs-cap{flex-direction:column;align-items:flex-start;gap:2px;}
 }
 </style>
+<style id="lsScrollClear">
+/* Landscape Beranda: ruang scroll di bawah supaya isi paling bawah bisa digulir sampai di atas bottom bar (tidak terpotong) */
+@media (orientation:landscape) and (max-height:620px){
+  html body[data-page="home"] .hm-left,
+  html body[data-page="home"] .hm-right,
+  html body[data-page="home"] .hn-col,
+  html body[data-page="home"] .hmx-dasbor .hmx-col,
+  html body[data-page="home"] .hau-l,
+  html body[data-page="home"] .hau-rt,
+  html body[data-page="home"] .hcf-rc,
+  html body[data-page="home"] .hob-l,
+  html body[data-page="home"] .hob-r,
+  html body[data-page="home"] .hjm-l,
+  html body[data-page="home"] .hjm-r,
+  html body[data-page="home"] .hpl-l,
+  html body[data-page="home"] .hpl-r,
+  html body[data-page="home"] .hpx-l,
+  html body[data-page="home"] .hpx-r,
+  html body[data-page="home"] .hmt-l,
+  html body[data-page="home"] .hmt-r,
+  html body[data-page="home"] .hkp-l,
+  html body[data-page="home"] .hkp-r,
+  html body[data-page="home"] .hbk-l,
+  html body[data-page="home"] .hbk-r{padding-bottom:calc(64px + env(safe-area-inset-bottom)) !important;box-sizing:border-box;}
+}
+</style>
+<style id="hmTopFadeMetro">
+/* Beranda (portrait & landscape): saat isi sudah di-scroll, tepi atas area scroll memudar (tanpa potongan tegas) */
+html body[data-page="home"] .fade-t{
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,rgba(0,0,0,.55) 8px,#000 22px);
+  mask-image:linear-gradient(180deg,transparent 0,rgba(0,0,0,.55) 8px,#000 22px);}
+/* Beranda Metro: tema gelap = isi hitam + garis luar putih; tema terang = isi putih + garis luar hitam */
+.hmt{color:#fff}
+.hmt-top{background:#000;border:2px solid #fff;box-shadow:3px 3px 0 #fff;color:#fff}
+.hmt-card{background:#000;border:2px solid #fff;box-shadow:3px 3px 0 #fff;color:#fff}
+.hmt-card h3{color:#a8adba}
+.hmt-lv .bar{background:#2b2e38}
+.hmt-lv small,.hmt-s small{color:#a8adba}
+.hmt-ch{background:#000;border-color:#fff;color:#fff}
+.hmt-s i{background:#000}
+body.light .hmt{color:#000}
+body.light .hmt-top{background:#000;border-color:#000;box-shadow:3px 3px 0 #000;color:#fff}
+body.light .hmt-card{background:#fff;border-color:#000;box-shadow:3px 3px 0 #000;color:#000}
+body.light .hmt-card h3{color:#6b7280}
+body.light .hmt-lv .bar{background:#e5e7eb}
+body.light .hmt-lv small,body.light .hmt-s small{color:#6b7280}
+body.light .hmt-ch{background:#fff;border-color:#000;color:#000}
+body.light .hmt-s i{background:#fff}
+</style>
+<style id="hmFitTitle">
+/* Cincin avatar Obsidian mengikuti warna aksen aktif */
+.hob-ring{background:conic-gradient(var(--accent) calc(var(--p)*1%),color-mix(in srgb,var(--text) 14%,transparent) 0);box-shadow:0 0 44px color-mix(in srgb,var(--accent) 38%,transparent)}
+/* Peluncur: widget level lebih pendek, "Lv" lebih kecil & sejajar tengah dengan garis progres */
+.hpl-wd{padding:8px 14px;align-items:center}
+.hpl-wd b{font-size:20px;line-height:1}
+.hpl-wd .b{align-self:center}
+@media (orientation:landscape) and (max-height:620px){
+  /* Peluncur landscape: dirapatkan sedikit supaya tombol pintasan bawah tidak terpotong */
+  .hpl-l{gap:6px}
+  .hpl-tm{font-size:46px}
+  .hpl-ck p{margin:2px 0 0;font-size:12px}
+  .hpl-ck h3{margin:4px 0 0;font-size:15px}
+  .hpl .hjm-sb{padding:6px 4px;gap:1px}
+  .hpl .hjm-sb em{width:32px;height:32px;padding:6px;border-radius:11px}
+}
+/* Peluncur: WIB di tengah bawah jam, kecil */
+.hpl-tw{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hpl-tz{font:600 10px/1 var(--font-body);letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+/* Obsidian: sapaan satu baris (mengecil kalau tidak muat), tanggal + jam + zona waktu */
+.hob-hi{white-space:nowrap;overflow:hidden;text-overflow:clip}
+.hob-dt{font-size:11px;white-space:nowrap}
+.hob-dt b{font-weight:inherit}
+/* Jam Dinding: tanpa teks "hari streak", judul aktivitas satu baris, jam landscape sedikit lebih pendek */
+.hjm .pw-h span{display:none}
+.hjm .pw-h b{white-space:nowrap}
+@media (orientation:landscape) and (max-height:620px){
+  .hjm .hjm-cl{width:144px;height:144px}
+  .hjm-l{gap:4px}
+}
+/* Jam Dinding: baris waktu */
+.hjm-gt small b{font-weight:inherit}
+/* Obsidian: ikon Skor/Game dari ./icon/skor.png & game.png (fallback ke SVG kalau file tidak ada) */
+.hob-rb>i .icon-img{width:100%;height:100%;object-fit:contain;padding:11px;box-sizing:border-box;border-radius:50%}
+.hob-rb>i .icon-fallback{width:auto;height:auto}
+/* Judul kategori tidak keluar kartu: teks otomatis mengecil (lihat skrip hmFitTitle) */
+.hob-cd b,.hbk-po b{display:block;max-width:100%;overflow:hidden;white-space:normal;overflow-wrap:normal;word-break:normal}
+</style>
 <script id="lbFitJs">
 (function(){
   var raf=0;
@@ -27971,6 +28065,69 @@ html body .chs-root:not(.fs) .chs-btns .btn{flex:1 1 0;}
   window.addEventListener('resize',sched); window.addEventListener('orientationchange',sched);
   try{ new MutationObserver(sched).observe(document.body,{childList:true,subtree:true}); }catch(e){}
   sched();
+})();
+</script>
+<script id="lsResetScroll">
+/* Putar ke landscape: kembalikan posisi scroll Beranda ke atas (di landscape #content tidak bisa di-scroll, jadi sisa scroll portrait bikin tampilan geser/error) */
+(function(){
+  var mq=window.matchMedia('(orientation:landscape) and (max-height:620px)');
+  function reset(){
+    if(!mq.matches) return;
+    var c=document.getElementById('content'), a=document.getElementById('app');
+    if(c && c.scrollTop) c.scrollTop=0;
+    if(a && a.scrollTop) a.scrollTop=0;
+    if(document.scrollingElement && document.scrollingElement.scrollTop) document.scrollingElement.scrollTop=0;
+    if(window.scrollY) window.scrollTo(0,0);
+  }
+  function sched(){ reset(); requestAnimationFrame(reset); setTimeout(reset,120); setTimeout(reset,400); }
+  if(mq.addEventListener) mq.addEventListener('change',sched); else if(mq.addListener) mq.addListener(sched);
+  window.addEventListener('resize',sched);
+  window.addEventListener('orientationchange',sched);
+})();
+</script>
+<script id="hmFadeTop">
+(function(){
+  var SEL=['#content','.hm-left','.hm-right','.hn-col','.hmx-dasbor .hmx-col','.hau-l','.hau-rt','.hcf-rc','.hob-l','.hob-r','.hjm-l','.hjm-r','.hpl-l','.hpl-r','.hpx-l','.hpx-r','.hmt-l','.hmt-r','.hkp-l','.hkp-r','.hbk-l','.hbk-r'].join(',');
+  function upd(el){ el.classList.toggle('fade-t', el.scrollTop>2); }
+  document.addEventListener('scroll',function(e){
+    var t=e.target; if(!t||t.nodeType!==1||!t.matches||!t.matches(SEL)) return; upd(t);
+  },true);
+  function all(){ document.querySelectorAll(SEL).forEach(upd); }
+  window.addEventListener('resize',function(){ setTimeout(all,50); setTimeout(all,450); });
+  window.addEventListener('orientationchange',function(){ setTimeout(all,50); setTimeout(all,450); });
+})();
+</script>
+<script id="hmFitTitle">
+(function(){
+  var SEL='.hob-cd b,.hbk-po b,.hob-hi';
+  function fit(b){
+    if(!b.offsetParent) return;
+    b.style.fontSize='';
+    var fs=parseFloat(getComputedStyle(b).fontSize)||13, min=7.5, n=0;
+    while(b.scrollWidth>b.clientWidth+0.5 && fs>min && n++<60){ fs-=0.5; b.style.fontSize=fs+'px'; }
+  }
+  function all(){ document.querySelectorAll(SEL).forEach(fit); }
+  var t; function sched(){ clearTimeout(t); t=setTimeout(all,30); }
+  new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',sched); window.addEventListener('orientationchange',sched);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(sched);
+  sched();
+})();
+</script>
+<script id="hmGreetLive">
+/* Ucapan di Beranda berganti sendiri saat jam melewati batasnya (tanpa pindah halaman) */
+(function(){
+  var RX=/Selamat (pagi|siang|sore|malam)/;
+  function tick(){
+    if(document.body.getAttribute('data-page')!=='home' || typeof getGreeting!=='function') return;
+    var g=getGreeting(), root=document.getElementById('content'); if(!root) return;
+    var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null), n, hits=[];
+    while((n=w.nextNode())){ if(RX.test(n.nodeValue) && n.nodeValue.indexOf(g)===-1) hits.push(n); }
+    hits.forEach(function(t){ t.nodeValue=t.nodeValue.replace(RX,g); });
+  }
+  setInterval(tick,10000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) tick(); });
+  window.addEventListener('focus',tick);
 })();
 </script>
 </body>
