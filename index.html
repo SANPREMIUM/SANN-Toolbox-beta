@@ -1262,6 +1262,7 @@ body.light .section-label{color:var(--text);opacity:.8;}
 .embed-game-wrap.auto-fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:none;width:100vw;height:100dvh;background:#0b0c10;}
 .embed-game-wrap.auto-fs .embed-game-frame{width:100vw;height:100dvh;}
 .embed-game-wrap.auto-fs .embed-fs-close{display:flex;}
+#egwrap-g-roket-asteroid .embed-fs-close{top:48px;}
 
 
 
@@ -26690,7 +26691,7 @@ function renderEmbedGameTopBtn(el, gid){
   // sesungguhnya + kunci orientasi ke landscape. Kalau browser/WebView tidak
   // mendukungnya, semua dibungkus try/catch jadi otomatis diam-diam gagal dan
   // tetap jatuh ke overlay CSS + hint "putar HP" bawaan game seperti biasa.
-  const FORCE_LANDSCAPE_GAMES = ['g-pasar-malam'];
+  const FORCE_LANDSCAPE_GAMES = ['g-pasar-malam','g-roket-asteroid'];
   function enterRealFullscreenLandscape(){
     try{
       const p = wrap.requestFullscreen ? wrap.requestFullscreen() : (wrap.webkitRequestFullscreen ? wrap.webkitRequestFullscreen() : null);
@@ -26749,7 +26750,7 @@ TOOL_RENDERERS['g-hutan-petualangan'] = (el)=> renderEmbedGame(el, 'g-hutan-petu
 TOOL_RENDERERS['g-kebun-permen'] = (el)=> renderEmbedGame(el, 'g-kebun-permen');
 TOOL_RENDERERS['g-bola-gacor'] = (el)=> renderEmbedGame(el, 'g-bola-gacor');
 TOOL_RENDERERS['g-ular-neon'] = (el)=> renderEmbedGame(el, 'g-ular-neon');
-TOOL_RENDERERS['g-roket-asteroid'] = (el)=> renderEmbedGame(el, 'g-roket-asteroid');
+TOOL_RENDERERS['g-roket-asteroid'] = (el)=> renderEmbedGameTopBtn(el, 'g-roket-asteroid');
 TOOL_RENDERERS['g-ludo-raja'] = (el)=> renderEmbedGame(el, 'g-ludo-raja');
 TOOL_RENDERERS['g-salon-cantik'] = (el)=> renderEmbedGameTopBtn(el, 'g-salon-cantik');
 TOOL_RENDERERS['g-neon-serpent'] = (el)=> renderEmbedGameTopBtn(el, 'g-neon-serpent');
