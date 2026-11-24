@@ -2816,7 +2816,7 @@ html body[data-game="1"] #appBgLayer{display:none !important;}
         if(!t||!(t.at>now)){ delete tm[id]; return; }
         var d=new Date(Math.ceil(t.at/60000)*60000); /* alarm APK presisi menit: dibulatkan ke atas */
         out.push({time:two(d.getHours())+':'+two(d.getMinutes()),
-          date:d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()),label:t.title||'Pengingat',on:true});
+          date:d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()),label:t.title||'Pengingat',on:true,at:t.at});
       });
       wr(K_TM,tm);
       try{ AL.sync(JSON.stringify(out)); }catch(e){}
@@ -2840,6 +2840,7 @@ html body[data-game="1"] #appBgLayer{display:none !important;}
         setTimer(String(id),at,(title||'Timer')+(text?' - '+text:''));
       },
       cancel:function(id){ dropTimer(String(id)); },
+      stopRing:function(){ try{ AL.stopRing(); }catch(e){} },
       timerState:function(id){
         var t=rd(K_TM,{})[String(id)];
         return (t&&t.at>Date.now())?JSON.stringify({at:t.at}):null;
@@ -3266,6 +3267,25 @@ body.light .hob{--hb-a:#8a6a22;--hb-a2:#b8902f}
   .hmt-s.c3n1:before,.hmt-s.c3n0:before{left:0;right:0}.hmt-s.c4n1:before{left:50%}.hmt-s.c4n0:before{right:50%}
   .hbk-hero{min-height:0;height:100%;margin:0;padding:14px}.hbk-hero h2{font-size:20px}.hbk-po{flex-basis:92px;height:124px}.hbk-sc i{width:50px;height:50px}
 }
+/* fix teks keluar kotak (home Kokpit) */
+.hkp-g em{letter-spacing:.06em;font-size:8.5px;max-width:86%;line-height:1.15;overflow-wrap:anywhere}
+.hkp-g b{max-width:90%;text-align:center}
+.hkp-m>div{min-width:0;flex:1}
+.hkp-m b{overflow-wrap:anywhere;hyphens:auto;font-size:clamp(10px,3.1vw,13px)}
+.hkp-m small{letter-spacing:.06em}
+.hkp-k{min-width:0}.hkp-k small{letter-spacing:.02em;font-size:9px;max-width:100%;overflow:hidden;text-overflow:clip;white-space:nowrap}
+@media (orientation:landscape) and (max-height:620px){
+  .hkp-m{gap:6px;padding:10px 8px 14px 8px}.hkp-m .e{width:22px;height:22px;font-size:20px}
+  .hkp-m b{font-size:11px}.hkp-m small{font-size:9px}
+  .hkp-ks{gap:2px}.hkp-k span{width:36px;height:36px}.hkp-k small{font-size:8.5px;letter-spacing:0}
+  .hkp-g em{font-size:7.5px;letter-spacing:.02em}
+}
+/* Metro: logo = avatar aktif */
+.hmt-lg{overflow:hidden;background:#ffd23f}.hmt-lg .hmt-lgimg{width:100%;height:100%;object-fit:cover;display:block}
+/* Bioskop: ikon aplikasi terakhir, samar, besar, di kanan kartu */
+.hbk-hero .bgi{right:14px;top:50%;transform:translateY(-50%);width:150px;height:150px;opacity:.26;align-items:center;justify-content:center}
+.hbk-hero .bgi .icon-img{width:100%;height:100%}
+.hbk-hero h2,.hbk-hero p,.hbk-hero .hbk-pg,.hbk-hero .hbk-bt{position:relative;z-index:1}
 @media (prefers-reduced-motion:reduce){.hau-bl,.hpx-top span:last-child{animation:none}}
 </style>
 <style id="imxCss">
@@ -8581,7 +8601,7 @@ function renderHomePixel(){
 function renderHomeMetro(){
   const D=_hyData(), nm=D.nm||'Penumpang', n=CATS.length, per=3;
   const net=CATS.map((c,i)=>`<div class="hmt-s l${Math.floor(i/per)%4+1} c3n${i%3===0?1:i%3===2?0:2} c4n${i%4===0?1:i%4===3?0:2}${i%4===0&&i>0&&i<n?' p'+(i+1):''}" onclick="nav('cat-${c.id}')"><i>${icoImg(c.id,'')}</i><b>${escapeHtml(c.nm)}</b><small>${c.tools.length} tools</small></div>`).join('');
-  return `<div class="hmt"><div class="hmt-top"><div class="hmt-lg">S</div><div><b>Stasiun Beranda</b><small>${escapeHtml(D.tgl())}</small></div><span class="t"><b data-hn-time style="font-weight:700">${D.clk()}</b> ${_tzLabel()}</span></div>
+  return `<div class="hmt"><div class="hmt-top"><div class="hmt-lg"><img id="homeAvatarImg" class="hmt-lgimg" src="${avatarSrc('avatar-1')}" alt="" onerror="this.style.display='none'"></div><div><b>Stasiun Beranda</b><small>${escapeHtml(D.tgl())}</small></div><span class="t"><b data-hn-time style="font-weight:700">${D.clk()}</b> ${_tzLabel()}</span></div>
   <div class="hmt-l"><div class="hmt-card"><h3>Penumpang</h3><div class="hmt-lv" onclick="nav('profil')"><div class="n">${D.lvN}</div><div class="x"><b>${nm}</b><div class="bar"><i style="width:${Math.max(3,D.pct)}%"></i></div><small>${D.lv.cur}/${D.lv.need} XP</small></div><div class="f"><i class=svi-flame></i> ${D.streak}</div></div></div>
     <div class="hmt-card"><h3>Jalur cepat</h3><div class="hmt-chs">${D.pins.map(x=>`<button class="hmt-ch" onclick="${D.act(x[0])}"><span>${D.pinIc(x)}</span>${x[2]}</button>`).join('')}</div></div></div>
   <div class="hmt-r"><div class="hmt-card"><h3>Peta jalur kategori</h3><div class="hmt-net">${net}</div></div></div></div>`;
@@ -8600,7 +8620,7 @@ function renderHomeKokpit(){
 function renderHomeBioskop(){
   const D=_hyData(), h=D.last||(D.games&&D.games[0])||null, half=Math.ceil(CATS.length/2);
   const po=c=>`<div class="hbk-po" style="${catNeon(c)}" onclick="nav('cat-${c.id}')"><i>${icoImg(c.id,'')}</i><b>${escapeHtml(c.nm)}</b><small>${c.tools.length} tools</small></div>`;
-  const hero=h?`<div class="hbk-hero"><span class="bgi">${icoImg(h.id,'')}</span><small>${D.last?'LANJUTKAN DARI TERAKHIR':'SIAP DIMULAI'}</small><h2>${escapeHtml(h.nm)}</h2><p>${escapeHtml((findCat(h.cat)||{}).nm||'')} · Level ${D.lvN}${D.nm?' · '+D.nm:''}</p><div class="hbk-pg"><i style="width:${Math.max(3,D.pct)}%"></i></div><div class="hbk-bt"><button onclick="nav('tool-${h.id}')">Lanjutkan</button><button onclick="homeRandomTool()">Acak</button></div></div>`:'';
+  const hero=h?`<div class="hbk-hero"><span class="bgi"><img class="icon-img" src="./icon/${ICON_FILE_ALIAS[h.id]||h.id}.png" alt="" draggable="false" onerror="this.onerror=null;this.src='./icon/${((findCat(h.cat)||{}).id)||'toolbox'}.png'"></span><small>${D.last?'LANJUTKAN DARI TERAKHIR':'SIAP DIMULAI'}</small><h2>${escapeHtml(h.nm)}</h2><p>${escapeHtml((findCat(h.cat)||{}).nm||'')} · Level ${D.lvN}${D.nm?' · '+D.nm:''}</p><div class="hbk-pg"><i style="width:${Math.max(3,D.pct)}%"></i></div><div class="hbk-bt"><button onclick="nav('tool-${h.id}')">Lanjutkan</button><button onclick="homeRandomTool()">Acak</button></div></div>`:'';
   return `<div class="hbk"><div class="hbk-top"><b>SANN</b><span onclick="nav('cat-game')">Game</span><span onclick="nav('leaderboard')">Skor</span><em><span data-hn-time style="opacity:1;cursor:default">${D.clk()}</span> ${_tzLabel()}</em></div>
   <div class="hbk-l">${hero}</div>
   <div class="hbk-r"><div><h4>Kategori populer${_swHint()}</h4><div class="hbk-row">${CATS.slice(0,half).map(po).join('')}</div></div>
@@ -14802,18 +14822,68 @@ function tmCss(){
 }
 function tmRing(id,sub){ return `<div class="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54"/><circle class="fg" id="${id}Arc" cx="60" cy="60" r="54"/></svg><div class="tm-c"><div class="tm-t" id="${id}">00:00</div><div class="tm-s" id="${id}Sub">${sub}</div></div></div>`; }
 function tmArc(id,f){ const a=document.getElementById(id+'Arc'); if(a) a.style.strokeDashoffset=(339.29*(1-Math.max(0,Math.min(1,f)))).toFixed(1); }
+var _tmCtx=null, _tmRingIv=null;
+function tmCtx(){
+  try{ const C=window.AudioContext||window.webkitAudioContext; if(!C) return null;
+    if(!_tmCtx) _tmCtx=new C();
+    if(_tmCtx.state==='suspended') _tmCtx.resume();
+    return _tmCtx;
+  }catch(e){ return null; }
+}
 function tmBeep(n){
-  try{ const C=window.AudioContext||window.webkitAudioContext, ctx=new C();
+  try{ const ctx=tmCtx(); if(!ctx) return;
     for(let i=0;i<(n||3);i++){ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='sine'; o.frequency.value=i%2?988:784;
       o.connect(g); g.connect(ctx.destination); const t=ctx.currentTime+i*.28;
       g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.3,t+.03); g.gain.exponentialRampToValueAtTime(.0001,t+.25); o.start(t); o.stop(t+.26); }
   }catch(e){}
 }
-/* Tes: bunyi + getar + toast; di APK juga mencoba kirim notifikasi 3 detik lagi */
-function tmTest(name){
-  tmBeep(3); vibrate([200,100,200]); toast('<i class=svi-check></i> Tes '+name+': bunyi & getar berfungsi');
-  if(NATIVE.has()) NATIVE.call('startTimer','tes',Date.now()+3000,'Tes '+name,'Notifikasi berfungsi');
+/* Panel "waktu habis": bunyi + getar berulang sampai ditekan Matikan (silent=true: tanpa bunyi, dipakai saat APK sudah membunyikan lewat sistem) */
+function tmAlert(title,text,silent){
+  try{
+    const old=document.getElementById('tmAlert'); if(old) old.remove();
+    clearInterval(_tmRingIv); _tmRingIv=null;
+    const o=document.createElement('div'); o.id='tmAlert';
+    o.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:20px';
+    o.innerHTML='<div style="max-width:320px;width:100%;text-align:center;padding:24px;border-radius:24px;background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:0 20px 50px -10px rgba(0,0,0,.6)"><div style="font-size:20px;font-weight:800;margin-bottom:6px">'+_esc(title)+'</div><div style="color:var(--muted);margin-bottom:18px">'+_esc(text)+'</div><button class="btn" id="tmAlertOk" style="width:100%">Matikan</button></div>';
+    document.body.appendChild(o);
+    const stop=()=>{ clearInterval(_tmRingIv); _tmRingIv=null; o.remove(); try{ if(navigator.vibrate) navigator.vibrate(0); }catch(e){} if(NATIVE.has()) NATIVE.call('stopRing'); };
+    o.querySelector('#tmAlertOk').onclick=stop;
+    if(!silent){
+      tmBeep(4); vibrate([300,100,300,100,300]);
+      let k=0; _tmRingIv=setInterval(()=>{ if(++k>20 || !o.isConnected){ stop(); return; } tmBeep(3); vibrate([200,100,200]); },2500);
+    }
+  }catch(e){}
 }
+/* Tes: tekan, tulisan tombol menghitung mundur 5 detik, lalu bunyi + getar + notifikasi.
+   Selama 5 detik itu aplikasi boleh ditutup/layar dikunci untuk mengetes notifikasinya. */
+function tmTest(name,btn){
+  if(!btn || btn._tmBusy) return;
+  btn._tmBusy=true; tmCtx();
+  const orig=btn.innerHTML; let n=5;
+  const paintBtn=()=>{ btn.innerHTML=safeIc('<i class=svi-zap></i> Tes '+n+' dtk'); };
+  paintBtn(); toast('<i class=svi-zap></i> Tes '+name+': bunyi dalam 5 detik');
+  const iv=setInterval(()=>{
+    n--; if(n>0){ paintBtn(); return; }
+    clearInterval(iv); btn.innerHTML=orig; btn._tmBusy=false;
+    tmBeep(3); vibrate([200,100,200]); toast('<i class=svi-check></i> Tes '+name+': bunyi & getar berfungsi');
+    if(NATIVE.has()) NATIVE.call('startTimer','tes',Date.now(),'Tes '+name,'Notifikasi berfungsi');
+  },1000);
+}
+/* Alarm saat aplikasi terbuka di browser (APK memakai alarm sistem). Cek tiap detik, bunyi sekali per menit, tidak bergantung pada detik ke-0. */
+(function(){
+  if(window._alarmLoop) return;
+  window._alarmLoop = setInterval(()=>{
+    try{
+      if(NATIVE.has()) return;
+      const now=new Date(), hm=pad(now.getHours())+':'+pad(now.getMinutes()), key=now.toDateString()+' '+hm;
+      if(window._alarmLast===key) return;
+      const hit=DB.get('alarms',[]).filter(a=>a.on && a.time===hm);
+      if(!hit.length) return;
+      window._alarmLast=key;
+      tmAlert(hit[0].label||'Alarm','Waktunya! '+hm);
+    }catch(e){}
+  },1000);
+})();
 const TM_PLAY='<i class=svi-play></i> Mulai', TM_PAUSE='<i class=svi-pause></i> Jeda', TM_RESUME='<i class=svi-play></i> Lanjut';
 
 /* -- Countdown Timer -- */
@@ -14824,7 +14894,7 @@ TOOL_RENDERERS['countdown'] = (el)=>{
     <div class="tm-r">
       <div class="tm-set"><label>Jam<input type="number" id="cdH" value="0" min="0"></label><label>Menit<input type="number" id="cdM" value="5" min="0" max="59"></label><label>Detik<input type="number" id="cdS" value="0" min="0" max="59"></label></div>
       <div class="tm-chips">${[1,3,5,10,15,30,60].map(m=>`<button class="tm-chip" data-m="${m}">${m>=60?'1 jam':m+' mnt'}</button>`).join('')}</div>
-      <div class="tm-act"><button class="tm-main" id="cdStart"></button><button id="cdReset"><i class=svi-stop></i> Reset</button><button id="cdTest"><i class=svi-zap></i> Tes</button></div>
+      <div class="tm-act"><button class="tm-main" id="cdStart"></button><button id="cdReset"><i class=svi-stop></i> Reset</button><button id="cdTest"><i class=svi-zap></i> Tes 5 dtk</button></div>
       ${nativeStatusHTML()}
     </div></div>`;
   nativeStatusBind(el);
@@ -14836,8 +14906,8 @@ TOOL_RENDERERS['countdown'] = (el)=>{
   function finish(){
     clearInterval(iv); iv=null; remain=0; paint();
     $('cdStart').innerHTML = safeIc(TM_PLAY);
-    if(!NATIVE.has()) tmBeep(4);
-    vibrate([200,100,200]); toast('<i class=svi-hourglass></i> Waktu habis!');
+    toast('<i class=svi-hourglass></i> Waktu habis!');
+    tmAlert('Countdown Timer','Waktu habis!', NATIVE.has());
   }
   function tick(){ remain = Math.max(0, Math.ceil((endAt-Date.now())/1000)); paint(); if(remain<=0) finish(); }
   function run(){
@@ -14857,7 +14927,7 @@ TOOL_RENDERERS['countdown'] = (el)=>{
     clearInterval(iv); iv=null; NATIVE.call('cancel','countdown');
     total = remain = readInputs(); $('cdStart').innerHTML = safeIc(TM_PLAY); paint();
   };
-  $('cdTest').onclick = ()=>tmTest('Countdown');
+  $('cdTest').onclick = (e)=>tmTest('Countdown',e.currentTarget);
   const sync = ()=>{ if(iv) return; total = remain = readInputs(); paint(); };
   ['cdH','cdM','cdS'].forEach(id=>$(id).oninput=sync);
   el.querySelectorAll('.tm-chip').forEach(b=>b.onclick=()=>{
@@ -14866,6 +14936,8 @@ TOOL_RENDERERS['countdown'] = (el)=>{
     el.querySelectorAll('.tm-chip').forEach(c=>c.classList.toggle('on',c===b));
   });
   $('cdStart').innerHTML = safeIc(TM_PLAY); paint();
+  const cdVis = ()=>{ if(!el.isConnected){ document.removeEventListener('visibilitychange',cdVis); return; } if(iv && !document.hidden) tick(); };
+  document.addEventListener('visibilitychange', cdVis);
   const st = NATIVE.has() ? NATIVE.json('timerState','countdown') : null;
   if(st && st.at > Date.now()){
     endAt = st.at; remain = Math.ceil((endAt-Date.now())/1000); total = remain;
@@ -14892,7 +14964,7 @@ TOOL_RENDERERS['alarm'] = (el)=>{
         <div class="al-next" id="alNext"><small>Alarm berikutnya</small><b>${nx||'Belum ada alarm aktif'}</b></div>
         <input type="time" id="alTime">
         <input type="text" id="alLabel" placeholder="Label (mis. Bangun tidur)">
-        <div class="tm-act"><button class="tm-main" id="alAdd"><i class=svi-clock></i> Tambah Alarm</button><button id="alTest"><i class=svi-zap></i> Tes</button></div>
+        <div class="tm-act"><button class="tm-main" id="alAdd"><i class=svi-clock></i> Tambah Alarm</button><button id="alTest"><i class=svi-zap></i> Tes 5 dtk</button></div>
         ${nativeStatusHTML()}
       </div>
       <div class="al-list">
@@ -14906,18 +14978,11 @@ TOOL_RENDERERS['alarm'] = (el)=>{
       const a = DB.get('alarms', []); a.push({time:t, label:document.getElementById('alLabel').value, on:true}); DB.set('alarms',a);
       syncNative(); toast('Alarm ditambahkan <i class=svi-clock></i>'); draw();
     };
-    el.querySelector('#alTest').onclick = ()=>tmTest('Alarm');
+    el.querySelector('#alTest').onclick = (e)=>tmTest('Alarm',e.currentTarget);
   }
   window.alToggle = (i)=>{ const a=DB.get('alarms',[]); a[i].on=!a[i].on; DB.set('alarms',a); syncNative(); draw(); };
   window.alDel = (i)=>{ const a=DB.get('alarms',[]); a.splice(i,1); DB.set('alarms',a); syncNative(); draw(); };
   draw(); syncNative();
-  if(!NATIVE.has() && !window._alarmLoop){
-    window._alarmLoop = setInterval(()=>{
-      const now = new Date(); const hm = pad(now.getHours())+':'+pad(now.getMinutes());
-      if(now.getSeconds()!==0) return;
-      DB.get('alarms', []).forEach(a=>{ if(a.on && a.time===hm){ toast('<i class=svi-clock></i> '+(a.label||'Alarm')+' — waktunya!'); vibrate([300,100,300,100,300]); tmBeep(5); } });
-    },1000);
-  }
   const rf=setInterval(()=>{ if(!el.isConnected){clearInterval(rf);return;} const n=el.querySelector('#alNext b'); if(n) n.textContent=nextText(DB.get('alarms',[]))||'Belum ada alarm aktif'; },30000);
 };
 
@@ -14930,7 +14995,7 @@ TOOL_RENDERERS['pomodoro'] = (el)=>{
       <div class="tm-seg"><div id="pmF" class="on"><i class=svi-target></i> Fokus 25m</div><div id="pmB"><i class=svi-coffee></i> Istirahat 5m</div></div>
       <div class="tm-dots" id="pmDots"><i></i><i></i><i></i><i></i></div>
       <div class="tm-stat"><b id="pmCount">0</b>sesi fokus selesai</div>
-      <div class="tm-act"><button class="tm-main" id="pmStart"></button><button id="pmReset"><i class=svi-stop></i> Reset</button><button id="pmTest"><i class=svi-zap></i> Tes</button></div>
+      <div class="tm-act"><button class="tm-main" id="pmStart"></button><button id="pmReset"><i class=svi-stop></i> Reset</button><button id="pmTest"><i class=svi-zap></i> Tes 5 dtk</button></div>
       <p class="small-note">Fokus 25 menit → istirahat 5 menit, berulang otomatis.</p>
       ${nativeStatusHTML()}
     </div></div>`;
@@ -14984,8 +15049,10 @@ TOOL_RENDERERS['pomodoro'] = (el)=>{
     clearInterval(iv); iv=null; NATIVE.call('pomoStop');
     mode='focus'; remain=DUR.focus; paintMode(); paint(); $('pmStart').innerHTML = safeIc(TM_PLAY);
   };
-  $('pmTest').onclick = ()=>tmTest('Pomodoro');
+  $('pmTest').onclick = (e)=>tmTest('Pomodoro',e.currentTarget);
   paintMode(); paintCount(); paint(); $('pmStart').innerHTML = safeIc(TM_PLAY);
+  const pmVis = ()=>{ if(!el.isConnected){ document.removeEventListener('visibilitychange',pmVis); return; } if(iv && !document.hidden) tick(); };
+  document.addEventListener('visibilitychange', pmVis);
   const st = NATIVE.has() ? NATIVE.json('pomoState') : null;
   if(st && st.running){
     applyNative(st); remain = Math.max(0, Math.ceil((endAt-Date.now())/1000));
@@ -27980,6 +28047,22 @@ html body .chs-root:not(.fs) .chs-btns .btn{flex:1 1 0;}
   html body[data-page="home"] .hkp-r,
   html body[data-page="home"] .hbk-l,
   html body[data-page="home"] .hbk-r{padding-bottom:calc(64px + env(safe-area-inset-bottom)) !important;box-sizing:border-box;}
+}
+</style>
+<style id="hmLeftNoExtraScroll">
+/* Landscape Beranda: kolom kiri semua gaya Beranda berhenti scroll tepat di bawah isi terakhir (tanpa ruang kosong ekstra) */
+@media (orientation:landscape) and (max-height:620px){
+  html body[data-page="home"] .hm-left,
+  html body[data-page="home"] .hau-l,
+  html body[data-page="home"] .hob-l,
+  html body[data-page="home"] .hjm-l,
+  html body[data-page="home"] .hpl-l,
+  html body[data-page="home"] .hpx-l,
+  html body[data-page="home"] .hmt-l,
+  html body[data-page="home"] .hkp-l,
+  html body[data-page="home"] .hbk-l,
+  html body[data-page="home"] .hn-col:first-child,
+  html body[data-page="home"] .hmx-dasbor .hmx-col:first-child{padding-bottom:0 !important;}
 }
 </style>
 <style id="hmTopFadeMetro">
