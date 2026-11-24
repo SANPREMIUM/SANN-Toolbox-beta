@@ -23474,6 +23474,99 @@ TOOL_RENDERERS['g-stroop'] = (el)=>{
 };
 
 /* -- Catch Fruits -- */
+/* ---------- Pad geser (kontrol satu sumbu: jari tidak menutupi karakter) ----------
+   Dipakai Catch Fruits & Loncat Awan. Jari menggeser di kotak terpisah; kursor bulat di dalam kotak
+   menunjukkan posisi karakter. Mode Relatif: gerak karakter = gerak jari x sensitivitas.
+   Mode Absolut: kiri kotak = kiri layar game, kanan kotak = kanan layar game. */
+function tpCss(){
+  if(document.getElementById('tpCss')) return;
+  const st=document.createElement('style'); st.id='tpCss';
+  st.textContent=`
+.tp-wrap{max-width:320px;margin:10px auto 0;display:none;flex-direction:column;gap:8px}
+.tp-pad{position:relative;height:96px;border-radius:16px;border:1.5px dashed var(--border);background:var(--surface);touch-action:none;overflow:hidden;user-select:none;-webkit-user-select:none;cursor:ew-resize;
+  background-image:repeating-linear-gradient(90deg,transparent 0 23px,color-mix(in srgb,var(--border) 70%,transparent) 23px 24px)}
+.tp-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;pointer-events:none;opacity:.7}
+.tp-mark{position:absolute;top:50%;left:50%;width:34px;height:34px;margin-top:-17px;border-radius:50%;pointer-events:none;background:linear-gradient(135deg,var(--accent),var(--accent-end,var(--accent)));box-shadow:0 0 14px var(--accent)}
+.tp-char{position:absolute;top:8px;bottom:8px;left:50%;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--text);opacity:.35;pointer-events:none}
+.tp-pad.on .tp-mark{transform:scale(1.15)}
+.tp-set{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tp-sens{display:flex;align-items:center;gap:8px;flex:1 1 100%;font-size:12px;color:var(--muted);font-weight:700;min-width:0}
+.tp-sens input{flex:1;min-width:0;accent-color:var(--accent)}
+.tp-sens b{color:var(--text);min-width:34px;text-align:right;font-family:var(--font-mono)}
+.tp-chip{flex:1;padding:7px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:800;font-family:inherit;cursor:pointer}
+.tp-wrap.off .tp-sens,.tp-wrap.off .tp-mode{display:none}
+@media (orientation:landscape) and (max-height:620px){
+  .tp-wrap{display:flex;max-width:none;margin:6px 0 0;gap:6px}
+  .tp-pad{height:clamp(46px,16dvh,64px)}
+  .tp-set{flex-wrap:nowrap}
+  .tp-sens{flex:1 1 auto}
+  .tp-chip{flex:0 0 auto;padding:6px 10px;font-size:11.5px}
+}`;
+  document.head.appendChild(st);
+}
+function tpHTML(){
+  tpCss();
+  return '<div class="tp-wrap"><div class="tp-pad"><span class="tp-hint">Geser di sini</span><div class="tp-char"></div><div class="tp-mark"></div></div>'
+    +'<div class="tp-set"><label class="tp-sens"><span>Kecepatan karakter</span><input type="range" class="tp-rng" min="0.5" max="3" step="0.1"><b class="tp-val"></b></label>'
+    +'<button type="button" class="tp-chip tp-mode"></button><button type="button" class="tp-chip tp-on"></button></div></div>';
+}
+/* api: {CW: lebar kanvas game, getPos(): posisi tengah karakter, setPos(x): atur posisi}.
+   Kursor bulat di pad = TARGET, mengikuti jari 1:1 (Relatif: ikut geseran jari; Absolut: lompat ke titik sentuh).
+   Karakter mengejar target itu dengan kecepatan dari slider (bukan kursornya). Garis tipis = posisi karakter.
+   Mengembalikan {isOn(), sync()}. */
+function tpInit(el,key,api){
+  const none={isOn:()=>false,sync(){}};
+  const wrap=el.querySelector('.tp-wrap'); if(!wrap) return none;
+  const pad=wrap.querySelector('.tp-pad'), mark=wrap.querySelector('.tp-mark'), chr=wrap.querySelector('.tp-char'),
+        rng=wrap.querySelector('.tp-rng'), val=wrap.querySelector('.tp-val'), bMode=wrap.querySelector('.tp-mode'), bOn=wrap.querySelector('.tp-on');
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  let coarse=false, land=null; try{ coarse=window.matchMedia('(pointer:coarse)').matches; land=window.matchMedia('(orientation:landscape) and (max-height:620px)'); }catch(e){}
+  const saved=DB.get('tpad2_'+key,{})||{};
+  const st={on:typeof saved.on==='boolean'?saved.on:coarse, abs:!!saved.abs, sens:(saved.sens>=0.5&&saved.sens<=3)?saved.sens:2};
+  const save=()=>DB.set('tpad2_'+key,{on:st.on,abs:st.abs,sens:st.sens});
+  let cf=0.5; const readPos=()=>{ try{ return clamp(api.getPos()/api.CW,0,1); }catch(e){ return 0.5; } };
+  cf=readPos();
+  function paint(){
+    wrap.classList.toggle('off',!st.on); pad.style.display=st.on?'':'none';
+    bOn.textContent=st.on?'Pad: Nyala':'Pad: Mati'; bMode.textContent=st.abs?'Mode: Absolut':'Mode: Relatif';
+    rng.value=st.sens; val.textContent=st.sens.toFixed(1)+'x';
+  }
+  rng.oninput=()=>{ st.sens=parseFloat(rng.value)||1; val.textContent=st.sens.toFixed(1)+'x'; save(); };
+  bMode.onclick=()=>{ st.abs=!st.abs; save(); paint(); };
+  bOn.onclick=()=>{ st.on=!st.on; if(st.on) cf=readPos(); save(); paint(); };
+  let pid=null, lastX=0;
+  const fracOf=e=>{ const r=pad.getBoundingClientRect(); return clamp((e.clientX-r.left)/r.width,0,1); };
+  pad.addEventListener('pointerdown',e=>{
+    if(pid!==null) return; e.preventDefault(); pid=e.pointerId; lastX=e.clientX;
+    try{ pad.setPointerCapture(e.pointerId); }catch(_){}
+    pad.classList.add('on'); if(st.abs) cf=fracOf(e);
+  });
+  pad.addEventListener('pointermove',e=>{
+    if(e.pointerId!==pid) return; e.preventDefault();
+    if(st.abs){ cf=fracOf(e); return; }
+    const r=pad.getBoundingClientRect(); cf=clamp(cf+(e.clientX-lastX)/r.width,0,1); lastX=e.clientX;
+  });
+  const end=e=>{ if(e.pointerId!==pid) return; pid=null; pad.classList.remove('on'); };
+  pad.addEventListener('pointerup',end); pad.addEventListener('pointercancel',end); pad.addEventListener('lostpointercapture',end);
+  const at=f=>'calc(17px + (100% - 34px) * '+f.toFixed(4)+')';
+  let lastT=0;
+  (function follow(t){
+    if(!el.isConnected) return;
+    const dt = lastT ? Math.min(0.05,(t-lastT)/1000) : 0.016; lastT = t||lastT;
+    if(st.on && land && land.matches){
+      try{
+        const cur=api.getPos(), tgt=cf*api.CW, step=200*st.sens*dt, d=tgt-cur;
+        api.setPos(Math.abs(d)<=step ? tgt : cur+Math.sign(d)*step);
+        mark.style.left=at(cf); mark.style.marginLeft='-17px';
+        chr.style.left=at(clamp(api.getPos()/api.CW,0,1));
+      }catch(e){}
+    }
+    requestAnimationFrame(follow);
+  })(0);
+  paint();
+  return {isOn:()=>st.on && !!(land && land.matches), sync:()=>{ cf=readPos(); }};
+}
+
 TOOL_RENDERERS['g-catch'] = (el)=>{
   const SKINS = [{em:'🧺',nm:'Keranjang'},{em:'🪣',nm:'Ember'},{em:'🛒',nm:'Troli'},{em:'🥣',nm:'Mangkuk'}];
   let skin = DB.get('catchSkin',0); if(!(skin>=0 && skin<SKINS.length)) skin=0;
@@ -23481,11 +23574,12 @@ TOOL_RENDERERS['g-catch'] = (el)=>{
   el.innerHTML = `
     <div class="stat-row"><div class="s"><b id="cfScore">0</b><span>Skor</span></div><div class="s"><b id="cfLives">3</b><span>Nyawa</span></div><div class="s"><b id="cfBest">${best0}</b><span>Rekor</span></div></div>
     <canvas id="catchCanvas" width="320" height="400" style="width:100%;max-width:320px;display:block;margin:0 auto;border-radius:14px;touch-action:none;"></canvas>
+    ${tpHTML()}
     <div id="cfSkins" style="display:flex;gap:6px;justify-content:center;margin:10px 0 0;">
       ${SKINS.map((s,i)=>`<button class="btn secondary" data-skin="${i}" style="padding:6px 10px;font-size:12px;${i===skin?'outline:2px solid var(--accent);':''}">${s.em} ${s.nm}</button>`).join('')}
     </div>
     <button class="btn" id="cfStart" style="margin-top:12px;"><i class=svi-play></i> Mulai</button>
-    <p class="small-note">Geser keranjang kiri-kanan. Tangkap buah 🍎🍊🍇 dan 🍍 (+3), hindari bom <i class=svi-bomb></i>. Power-up: <i class=svi-magnet></i> magnet buah, <i class=svi-hourglass></i> buah melambat (6 detik).</p>
+    <p class="small-note">Geser keranjang kiri-kanan (di mode landscape ada kotak geser, bisa dimatikan). Tangkap buah 🍎🍊🍇 dan 🍍 (+3), hindari bom <i class=svi-bomb></i>. Power-up: <i class=svi-magnet></i> magnet buah, <i class=svi-hourglass></i> buah melambat (6 detik).</p>
   `;
   const canvas = document.getElementById('catchCanvas');
   const ctx = canvas.getContext('2d');
@@ -23576,16 +23670,26 @@ TOOL_RENDERERS['g-catch'] = (el)=>{
     const x = (clientX - rect.left) * (CW / rect.width);
     paddle.x = Math.max(0, Math.min(CW - paddle.w, x - paddle.w/2));
   }
-  canvas.addEventListener('mousemove', e=> movePaddle(e.clientX));
-  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); movePaddle(e.touches[0].clientX); }, {passive:false});
-  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); movePaddle(e.touches[0].clientX); }, {passive:false});
+  const tp = tpInit(el,'g-catch',{
+    CW,
+    getPos:()=>paddle.x+paddle.w/2,
+    setPos:c=>{
+      const nx = Math.max(0, Math.min(CW-paddle.w, c-paddle.w/2));
+      if(nx===paddle.x) return;
+      paddle.x = nx;
+      if(!playing){ bg(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='46px serif'; ctx.fillText(SKINS[skin].em, paddle.x+paddle.w/2, CH-24); }
+    }
+  });
+  canvas.addEventListener('mousemove', e=>{ if(!tp.isOn()) movePaddle(e.clientX); });
+  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); if(!tp.isOn()) movePaddle(e.touches[0].clientX); }, {passive:false});
+  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!tp.isOn()) movePaddle(e.touches[0].clientX); }, {passive:false});
   el.querySelectorAll('[data-skin]').forEach(b=>b.onclick=()=>{
     skin = parseInt(b.dataset.skin); DB.set('catchSkin',skin);
     el.querySelectorAll('[data-skin]').forEach(x=>x.style.outline = (x===b)?'2px solid var(--accent)':'');
     if(!playing){ bg(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='46px serif'; ctx.fillText(SKINS[skin].em, paddle.x+paddle.w/2, CH-24); }
   });
   document.getElementById('cfStart').onclick = ()=>{
-    score=0; lives=3; items=[]; popups=[]; playing=true; lastSpawn=0; magnetUntil=0; slowUntil=0;
+    score=0; lives=3; items=[]; popups=[]; playing=true; lastSpawn=0; magnetUntil=0; slowUntil=0; tp.sync();
     document.getElementById('cfScore').textContent=0;
     document.getElementById('cfLives').textContent=3;
     document.getElementById('cfStart').style.display='none';
@@ -24869,12 +24973,13 @@ TOOL_RENDERERS['g-loncat-awan'] = (el)=>{
     <div id="lncGame">
     <div class="stat-row"><div class="s"><b id="lncScore">0</b><span>Skor</span></div><div class="s"><b id="lncBest">${best0}</b><span>Rekor</span></div><div class="s"><b id="lncLv">1</b><span>Level</span></div><div class="s"><b id="lncCoins">0</b><span><i class=svi-coin></i> Koin</span></div></div>
     <canvas id="lncCanvas" width="320" height="460" style="width:100%;max-width:320px;display:block;margin:0 auto;background:#4a9eff;border-radius:14px;touch-action:none;"></canvas>
+    ${tpHTML()}
     <div style="display:flex;gap:8px;margin-top:12px;">
       <button class="btn" id="lncStart" style="flex:1;"><i class=svi-play></i> Mulai</button>
       <button class="btn secondary" id="lncPause" style="flex:1;display:none;"><i class=svi-pause></i> Pause</button>
       <button class="btn secondary" id="lncShopBtn" style="flex:1;"><i class=svi-cart></i> Toko</button>
     </div>
-    <p class="small-note">Geser jari di layar buat gerakkan karakter. Makin tinggi, pemandangan berubah: langit pagi → senja → malam berbintang → luar angkasa → galaksi! Pijakan bersinar ungu bergerak, yang retak rapuh. Ambil <i class=svi-rocket></i> jetpack, <i class=svi-shield></i> perisai, dan injak pegas oranye. Koin didapat dari skor, <i class=svi-star></i> bonus, dan tiap masuk dunia baru. Tukar di <i class=svi-cart></i> Toko buat karakter baru!</p>
+    <p class="small-note">Geser jari di layar buat gerakkan karakter (di mode landscape ada kotak geser, bisa dimatikan). Makin tinggi, pemandangan berubah: langit pagi → senja → malam berbintang → luar angkasa → galaksi! Pijakan bersinar ungu bergerak, yang retak rapuh. Ambil <i class=svi-rocket></i> jetpack, <i class=svi-shield></i> perisai, dan injak pegas oranye. Koin didapat dari skor, <i class=svi-star></i> bonus, dan tiap masuk dunia baru. Tukar di <i class=svi-cart></i> Toko buat karakter baru!</p>
     </div>
     <div id="lncShop" style="display:none;"></div>
   `;
@@ -25261,7 +25366,8 @@ TOOL_RENDERERS['g-loncat-awan'] = (el)=>{
     else player.vy += GRAVITY;
     if(pointerX!==null){
       const diffX = (pointerX - PW/2) - player.x;
-      player.x += Math.max(-MAX_STEP, Math.min(MAX_STEP, diffX*0.22));
+      if(tp.isOn()) player.x = pointerX - PW/2;
+      else player.x += Math.max(-MAX_STEP, Math.min(MAX_STEP, diffX*0.22));
     }
     player.y += player.vy;
     if(player.x+PW < 0) player.x = CW; else if(player.x > CW) player.x = -PW;
@@ -25326,10 +25432,15 @@ TOOL_RENDERERS['g-loncat-awan'] = (el)=>{
     const rect = canvas.getBoundingClientRect();
     return Math.max(0, Math.min(CW, (e.clientX-rect.left)*(CW/rect.width)));
   }
-  canvas.addEventListener('pointerdown', e=>{ if(!playing) return; e.preventDefault(); canvas.setPointerCapture(e.pointerId); pointerX=getX(e); });
-  canvas.addEventListener('pointermove', e=>{ if(!playing) return; pointerX=getX(e); });
+  const tp = tpInit(el,'g-loncat-awan',{
+    CW,
+    getPos:()=> pointerX!==null ? pointerX : (player ? player.x+PW/2 : CW/2),
+    setPos:c=>{ if(playing) pointerX = Math.max(0, Math.min(CW, c)); }
+  });
+  canvas.addEventListener('pointerdown', e=>{ if(!playing || tp.isOn()) return; e.preventDefault(); canvas.setPointerCapture(e.pointerId); pointerX=getX(e); });
+  canvas.addEventListener('pointermove', e=>{ if(!playing || tp.isOn()) return; pointerX=getX(e); });
   document.getElementById('lncStart').onclick = ()=>{
-    resetGame();
+    resetGame(); tp.sync();
     document.getElementById('lncScore').textContent='0';
     document.getElementById('lncLv').textContent='1';
     document.getElementById('lncStart').style.display='none';
